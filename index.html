@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protocolo de Expansão - Entropia & Dados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow-x: hidden; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .entropy-gradient { background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 70%); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.3); border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICON SYSTEM ---
+        const Icon = ({ path, size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d={path} />
+            </svg>
+        );
+
+        const APP_ID = "entropia-protocol";
+
+        function App() {
+            const [dataInput, setDataInput] = useState("AFROKODICA");
+            const [entropyValue, setEntropyValue] = useState(0);
+            const [isSimulating, setIsSimulating] = useState(false);
+            const canvasRef = useRef(null);
+
+            // Cálculo de Entropia de Shannon Simples
+            useEffect(() => {
+                if (!dataInput) { setEntropyValue(0); return; }
+                const freq = {};
+                for (let char of dataInput) freq[char] = (freq[char] || 0) + 1;
+                const len = dataInput.length;
+                let entropy = 0;
+                for (let char in freq) {
+                    let p = freq[char] / len;
+                    entropy -= p * Math.log2(p);
+                }
+                setEntropyValue(entropy.toFixed(4));
+            }, [dataInput]);
+
+            // Simulação Visual da Entropia
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationId;
+                let particles = [];
+
+                const initParticles = () => {
+                    particles = [];
+                    for(let i = 0; i < 100; i++) {
+                        particles.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            vx: (Math.random() - 0.5) * (entropyValue * 2),
+                            vy: (Math.random() - 0.5) * (entropyValue * 2),
+                            size: Math.random() * 2 + 1
+                        });
+                    }
+                };
+
+                const animate = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#10b981';
+                    
+                    particles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        
+                        // Bounce
+                        if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                        if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Linhas de conexão baseadas na proximidade (caos organizado)
+                        particles.forEach(p2 => {
+                            const dx = p.x - p2.x;
+                            const dy = p.y - p2.y;
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            if(dist < 50) {
+                                ctx.strokeStyle = `rgba(16, 185, 129, ${0.1 * (1 - dist/50)})`;
+                                ctx.beginPath();
+                                ctx.moveTo(p.x, p.y);
+                                ctx.lineTo(p2.x, p2.y);
+                                ctx.stroke();
+                            }
+                        });
+                    });
+                    animationId = requestAnimationFrame(animate);
+                };
+
+                initParticles();
+                animate();
+                return () => cancelAnimationFrame(animationId);
+            }, [entropyValue]);
+
+            return (
+                <div className="min-h-screen flex flex-col items-center p-4 md:p-8 entropy-gradient">
+                    {/* Header */}
+                    <div className="w-full max-w-5xl flex justify-between items-center mb-12 border-b border-emerald-500/20 pb-6">
+                        <div>
+                            <h1 className="text-2xl font-extrabold tracking-tighter text-emerald-400">PROTOCOLO: ENTROPIA & DADOS</h1>
+                            <p className="text-xs font-mono text-slate-500 uppercase">Módulo de Expansão Afrokódica v1.0</p>
+                        </div>
+                        <div className="text-right hidden md:block">
+                            <p className="text-[10px] font-mono text-emerald-500/50">ESTADO DO SISTEMA</p>
+                            <p className="text-sm font-bold">CAOS SINCRONIZADO</p>
+                        </div>
+                    </div>
+
+                    <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        
+                        {/* Control Panel */}
+                        <div className="lg:col-span-4 space-y-6">
+                            <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-md">
+                                <label className="text-xs font-mono text-emerald-400 uppercase mb-2 block">Injeção de Dados</label>
+                                <input 
+                                    type="text" 
+                                    value={dataInput}
+                                    onChange={(e) => setDataInput(e.target.value)}
+                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white font-mono focus:border-emerald-500/50 outline-none transition-all"
+                                    placeholder="Digite algo..."
+                                />
+                                <div className="mt-6 p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                    <p className="text-[10px] font-mono text-emerald-400 uppercase">Valor de Entropia (H)</p>
+                                    <p className="text-4xl font-bold text-white tracking-tighter">{entropyValue} <span className="text-sm text-emerald-500">bits</span></p>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5">
+                                <h3 className="text-sm font-bold text-white mb-4">O que isto significa?</h3>
+                                <p className="text-xs text-slate-400 leading-relaxed">
+                                    Quanto maior o valor de **H**, mais "surpresa" e informação existem nos dados. No contexto Afrokódico, a entropia não é destruição, mas o potencial infinito de novas configurações antes da manifestação.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Visualization */}
+                        <div className="lg:col-span-8 space-y-6">
+                            <div className="relative bg-black/60 rounded-3xl border border-white/10 overflow-hidden shadow-2xl h-[400px]">
+                                <canvas ref={canvasRef} width={800} height={400} className="w-full h-full" />
+                                <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center pointer-events-none">
+                                    <div className="bg-black/80 px-4 py-2 rounded-full border border-white/10 text-[10px] font-mono text-emerald-400">
+                                        MAPA DE DISPERSÃO EM TEMPO REAL
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500/30"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Theory Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
+                                    <h4 className="text-xs font-mono text-emerald-400 uppercase mb-2">Visão Técnica</h4>
+                                    <p className="text-xs text-slate-300">Cálculo baseado na fórmula de Claude Shannon. Mede a eficiência necessária para codificar esta sequência de dados sem perda de informação.</p>
+                                </div>
+                                <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
+                                    <h4 className="text-xs font-mono text-emerald-400 uppercase mb-2">Visão Ancestral</h4>
+                                    <p className="text-xs text-slate-300">A entropia é o estado de 'Chaos' primordial (o N'un da cosmologia egípcia) de onde a ordem (Ma'at) é extraída pelo observador consciente.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer / Navigation Hint */}
+                    <div className="mt-16 text-center">
+                        <p className="text-[10px] font-mono text-slate-600 uppercase tracking-[0.2em]">Conectado ao Nodo Principal - Afrokódica Hub</p>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
